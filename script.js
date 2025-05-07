@@ -3,6 +3,55 @@ const burger = document.querySelector('.burger');
 const nav = document.querySelector('.nav-links');
 const navLinks = document.querySelectorAll('.nav-links li');
 
+// Contact Form Email Functionality
+function setupContactForm() {
+    const contactForm = document.getElementById('contactForm');
+    
+    if (contactForm) {
+        contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+            const submitBtn = contactForm.querySelector('button[type="submit"]');
+            
+            if (!name || !email || !message) {
+                showAlert('Please fill in all fields', 'error');
+                return;
+            }
+            
+            if (!isValidEmail(email)) {
+                showAlert('Please enter a valid email address', 'error');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            submitBtn.disabled = true;
+            
+            // Directly send email using mailto
+            const mailtoLink = `mailto:saif.eldin.ashraf2@gmail.com?subject=Portfolio Contact from ${name}&body=${message}%0A%0AReply to: ${email}`;
+            
+            // Open the default mail client
+            window.location.href = mailtoLink;
+            
+            // Show success message
+            showAlert('Mail client opened! Please send the email from your mail application.', 'success');
+            contactForm.reset();
+            submitBtn.innerHTML = 'Send Message';
+            submitBtn.disabled = false;
+        });
+    }
+}
+
+// Remove the duplicate form handler
+if (contactForm) {
+    // Remove the event listener by replacing the element
+    const newContactForm = contactForm.cloneNode(true);
+    contactForm.parentNode.replaceChild(newContactForm, contactForm);
+}
+
 // Setup animated background elements
 function setupDataVisualization() {
     const header = document.querySelector('.site-header');
@@ -253,24 +302,6 @@ function setupDataVisualization() {
     });
 }
 
-burger.addEventListener('click', () => {
-    // Toggle Nav
-    nav.classList.toggle('nav-active');
-    document.body.classList.toggle('no-scroll'); // Prevent background scrolling when menu is open
-    
-    // Animate Links with staggered delay
-    navLinks.forEach((link, index) => {
-        if (link.style.animation) {
-            link.style.animation = '';
-        } else {
-            link.style.animation = `navLinkFade 0.5s ease forwards ${index / 7 + 0.3}s`;
-        }
-    });
-    
-    // Burger Animation
-    burger.classList.toggle('toggle');
-});
-
 // Close mobile menu when clicking outside
 document.addEventListener('click', (e) => {
     if (nav.classList.contains('nav-active') && 
@@ -406,36 +437,52 @@ if (contactForm) {
     });
 }
 
-// Helper function to validate email
+// Validate email format
 function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailPattern.test(email);
 }
 
-// Helper function to show alerts
+// Show alert notification
 function showAlert(message, type) {
-    // Check if an alert already exists and remove it
-    const existingAlert = document.querySelector('.form-alert');
-    if (existingAlert) {
-        existingAlert.remove();
-    }
+    const alertContainer = document.getElementById('alert-container');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
     
-    // Create new alert
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `form-alert ${type}`;
-    alertDiv.textContent = message;
+    // Set appropriate icon based on alert type
+    let icon = 'info-circle';
+    if (type === 'success') icon = 'check-circle';
+    if (type === 'error') icon = 'exclamation-circle';
     
-    // Insert alert before the form
-    contactForm.insertAdjacentElement('beforebegin', alertDiv);
+    alert.innerHTML = `
+        <div class="alert-icon"><i class="fas fa-${icon}"></i></div>
+        <div class="alert-message">${message}</div>
+        <button class="alert-close"><i class="fas fa-times"></i></button>
+    `;
     
-    // Remove alert after 3 seconds
-    setTimeout(() => {
-        alertDiv.classList.add('fade-out');
-        
+    // Add the alert to the container
+    alertContainer.appendChild(alert);
+    
+    // Set up close button
+    const closeBtn = alert.querySelector('.alert-close');
+    closeBtn.addEventListener('click', () => {
+        alert.style.animation = 'fadeOutRight 0.5s ease forwards';
         setTimeout(() => {
-            alertDiv.remove();
+            alert.remove();
         }, 500);
-    }, 3000);
+    });
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.style.animation = 'fadeOutRight 0.5s ease forwards';
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 500);
+        }
+    }, 5000);
 }
 
 // Add animation class when elements come into view
@@ -474,24 +521,37 @@ function typeEffect() {
 // Call the function on scroll
 window.addEventListener('scroll', animateOnScroll);
 
-// Call once on page load
-document.addEventListener('DOMContentLoaded', () => {
-    animateOnScroll();
-    createScrollProgress();
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const navSlide = () => {
+        burger.addEventListener('click', () => {
+            // Toggle Navigation
+            nav.classList.toggle('nav-active');
+            
+            // Animate Links
+            navLinks.forEach((link, index) => {
+                if (link.style.animation) {
+                    link.style.animation = '';
+                } else {
+                    link.style.animation = `fadeInNav 0.5s ease forwards ${index / 7 + 0.2}s`;
+                }
+            });
+            
+            // Burger Animation
+            burger.classList.toggle('toggle');
+            
+            // Prevent scrolling when menu is open
+            document.body.classList.toggle('no-scroll');
+        });
+    };
+    
+    navSlide();
     setupDataVisualization();
-    
-    // Highlight initial section based on URL hash or default to about
-    const currentHash = window.location.hash || '#about';
-    const currentNavItem = document.querySelector(`.nav-links a[href="${currentHash}"]`);
-    if (currentNavItem) {
-        currentNavItem.classList.add('active');
-    }
-    
-    // Run initial highlighting
     highlightNavOnScroll();
-    
-    // Add typing effect to hero text with a delay
-    setTimeout(typeEffect, 1000);
+    createScrollProgress();
+    animateOnScroll();
+    typeEffect();
+    setupContactForm(); // Initialize contact form functionality
 });
 
 // Add CSS for animations
